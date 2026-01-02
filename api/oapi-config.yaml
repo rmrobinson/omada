@@ -1,0 +1,8 @@
+package: api
+generate:
+  client: true
+  models: true
+output: api.gen.go
+output-options:
+  skip-prune: true
+#  response-type-suffix: Resp
