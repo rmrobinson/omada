@@ -58,5 +58,30 @@ func main() {
 		for _, activeClient := range *resp.JSON200.Result.Data {
 			spew.Dump(activeClient)
 		}
+
+		wlanResp, err := omadaClient.GetWlanGroupListWithResponse(context.Background(), *cid, site.ID)
+		if err != nil {
+			logger.Error("unable to get wlan group list", zap.Error(err), zap.String("site_id", site.ID))
+			continue
+		}
+
+		for _, wlanGroup := range *wlanResp.JSON200.Result {
+			logger.Info("getting ssids for wlan group", zap.String("wlan_id", *wlanGroup.WlanId))
+
+			ssidReq := &api.GetSsidListParams{
+				Page:     1,
+				PageSize: 50,
+			}
+			ssidResp, err := omadaClient.GetSsidListWithResponse(context.Background(), *cid, site.ID, *wlanGroup.WlanId, ssidReq)
+			if err != nil {
+				logger.Error("unable to get ssids for site", zap.Error(err), zap.String("site_id", site.ID))
+				continue
+			}
+
+			for _, ssid := range *ssidResp.JSON200.Result.Data {
+				spew.Dump(ssid)
+			}
+
+		}
 	}
 }
