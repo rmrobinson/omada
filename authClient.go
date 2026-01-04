@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -37,6 +38,7 @@ type authClient struct {
 	clientSecret string
 	omadaCID     string
 
+	tokenLock             sync.Mutex // ensure that the updates to token and the expiration fields are done together
 	token                 *authToken
 	accessTokenExpiresAt  time.Time
 	refreshTokenExpiresAt time.Time
@@ -54,11 +56,10 @@ func (c *authClient) addBearerTokenToAPIRequest(ctx context.Context, req *http.R
 			return ErrRefreshTokenFailed
 		}
 	}
-	if c.token == nil {
-		c.logger.Error("auth token empty, can't add to request")
-		return nil
+
+	if c.token != nil {
+		req.Header.Add("Authorization", fmt.Sprintf("AccessToken=%s", c.token.AccessToken))
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("AccessToken=%s", c.token.AccessToken))
 	return nil
 }
 
@@ -100,7 +101,9 @@ func (c *authClient) obtainToken(ctx context.Context) error {
 		return err
 	}
 
-	// TODO: add a lock here to avoid multiple goroutines setting the token
+	c.tokenLock.Lock()
+	defer c.tokenLock.Unlock()
+
 	c.token = &tokenResp.Result
 	c.refreshTokenExpiresAt = time.Now().Add(time.Hour * 24 * 14)                               // refresh tokens are valid for 14 days
 	c.accessTokenExpiresAt = time.Now().Add(time.Second * time.Duration(c.token.ExpiresInSecs)) // access token validity returned
@@ -141,7 +144,9 @@ func (c *authClient) refreshToken(ctx context.Context) error {
 		return err
 	}
 
-	// TODO: add a lock here to avoid multiple goroutines setting the token
+	c.tokenLock.Lock()
+	defer c.tokenLock.Unlock()
+
 	c.token = &tokenResp.Result
 	c.accessTokenExpiresAt = time.Now().Add(time.Second * time.Duration(c.token.ExpiresInSecs)) // access token validity returned
 
