@@ -1,6 +1,9 @@
 # api
 
-This package contains an auto-generated API implementation of the Omada OpenAPI specification. I used the modified openapi.json file referenced at https://github.com/charlie-haley/omada_exporter/issues/81 since, as the GH issue calls out, the Omada JSON file returned by the SDN controller does not parse. I had to manually convert the `*/*` response type qualifier in the modified openapi.json file to `application/json` to hint to the oapi-codegen tool that it needed to create the JSON200 field in the result structs.
+This package contains an auto-generated API implementation of the Omada OpenAPI specification. I used the OpenAPI JSON file retrieved from my Omada Controller running software version 5.14.26.1 at https://<hostname>/v3/api-docs, with several modifications:
+- I converted the `*/*` response type qualifier in the JSON file file to `application/json` to hint to the oapi-codegen tool that it needed to create the JSON200 field in the result structs
+- I removed the `wanList` property in the `CheckWanLanStatusOpenApiVO` object since it referenced a non-existant result type
+- I updated 21 API methods which had missing path parameter definitions
 
 After installing the [oapi-codegen](https://github.com/oapi-codegen/oapi-codegen) tool, the following command was used:
 
